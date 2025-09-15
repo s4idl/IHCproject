@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Multimodal: Botones + Voz + Movimiento</title>
+<style>
+  body { font-family: Arial; text-align: center; background: #f4f4f4; }
+  .grid { 
+    display: grid; 
+    grid-template-columns: repeat(3,100px); 
+    grid-template-rows: repeat(3,100px); 
+    gap:5px; 
+    justify-content:center; 
+    margin:20px auto; 
+  }
+  .cell { 
+    background:#ddd; 
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+  }
+  .avatar { 
+    width:40px; 
+    height:40px; 
+    background:tomato; /* avatar genérico */
+    border-radius:5px; 
+  }
+  .controls { margin-top:15px; }
+  .btn { padding:10px; margin:5px; font-size:18px; cursor:pointer; }
+  #status { margin-top:10px; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<h2>Interacción Multimodal</h2>
+<div class="grid" id="grid"></div>
+
+<div class="controls">
+  <button class="btn" onclick="move('left')">◀</button>
+  <button class="btn" onclick="move('up')">▲</button>
+  <button class="btn" onclick="move('down')">▼</button>
+  <button class="btn" onclick="move('right')">▶</button>
+  <button class="btn" onclick="toggleVoice()">🎤 Activar/Desactivar Voz</button>
+  <button class="btn" onclick="startMotion()">📱 Activar Movimiento</button>
+</div>
+
+<div id="status">Usa botones, voz (en Chrome) o inclina el iPhone.</div>
+
+<script>
+  // --- Configuración de grid ---
+  const grid = document.getElementById("grid");
+  const size = 3;
+  let row = 1, col = 1;
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+
+  // generar grid
+  for (let r=0; r<size; r++){
+    for (let c=0; c<size; c++){
+      const cell = document.createElement("div");
+      cell.className="cell";
+      cell.id=`cell-${r}-${c}`;
+      grid.appendChild(cell);
+    }
+  }
+  document.getElementById(`cell-${row}-${col}`).appendChild(avatar);
+
+  // función mover
+  function move(dir){
+    if(dir==="up") row = Math.max(0,row-1);
+    if(dir==="down") row = Math.min(size-1,row+1);
+    if(dir==="left") col = Math.max(0,col-1);
+    if(dir==="right") col = Math.min(size-1,col+1);
+    document.querySelectorAll(".cell").forEach(c=>c.innerHTML="");
+    document.getElementById(`cell-${row}-${col}`).appendChild(avatar);
+    document.getElementById("status").innerText="Movimiento: "+dir;
+  }
+
+  // --- Reconocimiento de voz (solo funciona en Chrome/Android/PC) ---
+  let recognition, listening=false;
+  function toggleVoice(){
+    if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
+      alert("Este navegador no soporta reconocimiento de voz (Safari iOS no lo tiene)");
+      return;
+    }
+    if(!recognition){
+      const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang="es-MX";
+      recognition.onresult = (e)=>{
+        const txt = e.results[0][0].transcript.toLowerCase();
+        document.getElementById("status").innerText="Voz: "+txt;
+        if(txt.includes("arriba")) move("up");
+        if(txt.includes("abajo")) move("down");
+        if(txt.includes("izquierda")) move("left");
+        if(txt.includes("derecha")) move("right");
+      };
+      recognition.onend = ()=>{ if(listening) recognition.start(); };
+    }
+    if(!listening){
+      recognition.start(); listening=true;
+      document.getElementById("status").innerText="🎤 Voz activada (solo Chrome)";
+    } else {
+      recognition.stop(); listening=false;
+      document.getElementById("status").innerText="🎤 Voz desactivada";
+    }
+  }
+
+  // --- Movimiento (giroscopio del iPhone) ---
+  function startMotion(){
+    if (typeof DeviceOrientationEvent !== "undefined" && 
+        typeof DeviceOrientationEvent.requestPermission === "function") {
+      // iOS 13+
+      DeviceOrientationEvent.requestPermission()
+        .then(response => {
+          if (response === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation);
+            document.getElementById("status").innerText="📱 Movimiento activado, inclina el iPhone";
+          } else {
+            document.getElementById("status").innerText="Permiso denegado para sensores.";
+          }
+        })
+        .catch(console.error);
+    } else {
+      // Android o navegadores con acceso directo
+      window.addEventListener("deviceorientation", handleOrientation);
+      document.getElementById("status").innerText="📱 Movimiento activado (Android / navegador compatible)";
+    }
+  }
+
+  function handleOrientation(event){
+    let tiltX = event.gamma; // izquierda/derecha
+    let tiltY = event.beta;  // adelante/atrás
+
+    if(tiltY < 20) move("up");
+    if(tiltY > 60) move("down");
+    if(tiltX < -20) move("left");
+    if(tiltX > 20) move("right");
+  }
+</script>
+</body>
+</html>

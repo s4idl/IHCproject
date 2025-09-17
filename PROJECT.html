@@ -2,9 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Multimodal: Botones + Voz + Movimiento</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avatar de Gato con Minijuego</title>
 <style>
-  body { font-family: Arial; text-align: center; background: #f4f4f4; }
+  body { font-family: Arial; text-align: center; background: #f4f4f4; margin:0; padding:0; }
+  h2 { margin:15px 0; }
+
   .grid { 
     display: grid; 
     grid-template-columns: repeat(3,100px); 
@@ -12,147 +15,322 @@
     gap:5px; 
     justify-content:center; 
     margin:20px auto; 
+    transition: all 0.3s ease;
   }
   .cell { 
     background:#ddd; 
     display:flex; 
     align-items:center; 
     justify-content:center; 
+    font-size:40px; 
+    transition: background 0.3s ease;
   }
-  .avatar { 
-    width:40px; 
-    height:40px; 
-    background:tomato;
-    border-radius:5px; 
-    transition: all 0.2s ease; /* suaviza el movimiento */
+  .avatar { font-size:48px; }
+  .controls { margin:10px auto; display:flex; flex-wrap:wrap; justify-content:center; max-width:400px; }
+  .btn { flex:1 1 auto; padding:10px 15px; margin:5px; font-size:16px; cursor:pointer; border:none; border-radius:6px; color:#fff; min-width:80px; }
+  #status { margin-top:10px; font-weight:bold; padding:0 10px; }
+  #last { margin-top:5px; font-style:italic; color:#555; }
+
+  /* Colores por modo */
+  .mode-voice .cell { background:#cce5ff; }
+  .mode-motion .cell { background:#d4edda; }
+  .mode-game .cell { background:#fff3cd; }
+  .mode-normal .cell { background:#ddd; }
+
+  /* Colores botones */
+  .btn-normal { background:#6c757d; }
+  .btn-voice { background:#007bff; }
+  .btn-motion { background:#28a745; }
+  .btn-game { background:#ffc107; color:#000; }
+  .btn-exit { background:#dc3545; display:none; }
+
+  /* --- Responsive smartphone --- */
+  @media (max-width:600px){
+    .grid {
+      grid-template-columns: repeat(3,80px);
+      grid-template-rows: repeat(3,80px);
+      gap:4px;
+    }
+    .cell { font-size:30px; }
+    .avatar { font-size:40px; }
+    .controls { max-width:100%; padding:0 10px; }
+    .btn { font-size:18px; padding:12px; min-width:100px; flex: 1 1 45%; } 
+    h2 { font-size:20px; }
   }
-  .controls { margin-top:15px; }
-  .btn { padding:10px; margin:5px; font-size:18px; cursor:pointer; }
-  #status { margin-top:10px; font-weight:bold; }
+
+  @media (max-width:400px){
+    .grid {
+      grid-template-columns: repeat(3,70px);
+      grid-template-rows: repeat(3,70px);
+    }
+    .btn { font-size:16px; min-width:90px; }
+  }
 </style>
 </head>
 <body>
 
-<h2>Interacción Multimodal</h2>
-<div class="grid" id="grid"></div>
+<h2>Interacción Multimodal 🐱</h2>
+<div class="grid mode-normal" id="grid"></div>
 
 <div class="controls">
-  <button class="btn" onclick="move('left')">◀</button>
-  <button class="btn" onclick="move('up')">▲</button>
-  <button class="btn" onclick="move('down')">▼</button>
-  <button class="btn" onclick="move('right')">▶</button>
-  <button class="btn" onclick="toggleVoice()">🎤 Activar/Desactivar Voz</button>
-  <button class="btn" onclick="startMotion()">📱 Activar Movimiento</button>
+  <!-- Controles normales -->
+  <button class="btn btn-normal" onclick="move('left')">◀</button>
+  <button class="btn btn-normal" onclick="move('up')">▲</button>
+  <button class="btn btn-normal" onclick="move('down')">▼</button>
+  <button class="btn btn-normal" onclick="move('right')">▶</button>
+  
+  <!-- Controles por voz -->
+  <button class="btn btn-voice" onclick="startVoice()">🎤 Voz</button>
+  <button id="exitVoiceBtn" class="btn btn-exit" onclick="exitVoice()">✖ Cancelar Voz</button>
+  
+  <!-- Controles por movimiento -->
+  <button class="btn btn-motion" onclick="startMotion()">📱 Movimiento</button>
+  <button id="exitMotionBtn" class="btn btn-exit" onclick="exitMotion()">✖ Cancelar Movimiento</button>
+  
+  <!-- Modo juego -->
+  <button class="btn btn-game" onclick="startGame()">🎮 Jugar</button>
+  <button id="exitGameBtn" class="btn btn-exit" onclick="exitGame()">✖ Cancelar Juego</button>
 </div>
 
-<div id="status">Usa botones, voz (en Chrome) o inclina el iPhone.</div>
+<div id="status">Usa botones, voz o inclina el teléfono.</div>
+<div id="last">Último puntaje: -</div>
 
 <script>
-  // --- Configuración de grid ---
-  const grid = document.getElementById("grid");
-  const size = 3;
-  let row = 1, col = 1;
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
+const grid = document.getElementById("grid");
+const size = 3;
+let row = 1, col = 1;
+const avatar = document.createElement("div");
+avatar.className = "avatar";
+avatar.textContent = "🐱";
 
-  for (let r=0; r<size; r++){
-    for (let c=0; c<size; c++){
-      const cell = document.createElement("div");
-      cell.className="cell";
-      cell.id=`cell-${r}-${c}`;
-      grid.appendChild(cell);
-    }
+for (let r=0; r<size; r++){
+  for (let c=0; c<size; c++){
+    const cell = document.createElement("div");
+    cell.className="cell";
+    cell.id=`cell-${r}-${c}`;
+    grid.appendChild(cell);
   }
+}
+document.getElementById(`cell-${row}-${col}`).appendChild(avatar);
+
+let gameMode = false;
+let score = 0;
+let timeLeft = 0;
+let timerInterval = null;
+let lastScore = null; 
+let listening = false;
+let recognition;
+let motionActive = false;
+let motionInterval = null;
+let fishes = [];
+
+const exitVoiceBtn = document.getElementById("exitVoiceBtn");
+const exitMotionBtn = document.getElementById("exitMotionBtn");
+const exitGameBtn = document.getElementById("exitGameBtn");
+
+function setMode(mode){
+  grid.className = `grid mode-${mode}`;
+}
+
+// --- función mover ---
+function move(dir){
+  if(dir==="up") row = Math.max(0,row-1);
+  if(dir==="down") row = Math.min(size-1,row+1);
+  if(dir==="left") col = Math.max(0,col-1);
+  if(dir==="right") col = Math.min(size-1,col+1);
+
+  renderGrid();
+  if(gameMode) checkCollision();
+  document.getElementById("status").innerText = 
+    gameMode ? `🐟 Puntos: ${score} | ⏱ Tiempo: ${timeLeft}s` 
+             : "Movimiento: " + dir;
+}
+
+function renderGrid(){
+  document.querySelectorAll(".cell").forEach(c=>c.innerHTML="");
   document.getElementById(`cell-${row}-${col}`).appendChild(avatar);
+  if(gameMode){
+    fishes.forEach(f=>{
+      const fishEl = document.createElement("div");
+      fishEl.textContent = "🐟";
+      document.getElementById(`cell-${f.r}-${f.c}`).appendChild(fishEl);
+    });
+  }
+}
 
-  // función mover
-  function move(dir){
-    if(dir==="up") row = Math.max(0,row-1);
-    if(dir==="down") row = Math.min(size-1,row+1);
-    if(dir==="left") col = Math.max(0,col-1);
-    if(dir==="right") col = Math.min(size-1,col+1);
-    document.querySelectorAll(".cell").forEach(c=>c.innerHTML="");
-    document.getElementById(`cell-${row}-${col}`).appendChild(avatar);
-    document.getElementById("status").innerText="Movimiento: "+dir;
+// --- VOZ ---
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
+    alert("Este navegador no soporta reconocimiento de voz");
+    return;
+  }
+  if(!recognition){
+    const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang="es-MX";
+    recognition.onresult = (e)=>{
+      const txt = e.results[0][0].transcript.toLowerCase();
+      if(txt.includes("arriba")) move("up");
+      if(txt.includes("abajo")) move("down");
+      if(txt.includes("izquierda")) move("left");
+      if(txt.includes("derecha")) move("right");
+    };
+    recognition.onend = ()=>{ if(listening) recognition.start(); };
+  }
+  recognition.start();
+  listening=true;
+  document.getElementById("status").innerText="🎤 Voz activada";
+  setMode("voice");
+  exitVoiceBtn.style.display="inline-block";
+}
+function exitVoice(){
+  if(recognition){ recognition.stop(); }
+  listening=false;
+  setMode("normal");
+  document.getElementById("status").innerText="🎤 Voz desactivada";
+  exitVoiceBtn.style.display="none";
+}
+
+// --- MOVIMIENTO ---
+function startMotion(){
+  if (typeof DeviceOrientationEvent !== "undefined" && 
+      typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission()
+      .then(response => {
+        if (response === "granted") {
+          window.addEventListener("deviceorientation", handleOrientation);
+          motionActive = true;
+          document.getElementById("status").innerText="📱 Movimiento activado";
+          setMode("motion");
+          exitMotionBtn.style.display="inline-block";
+        }
+      })
+      .catch(console.error);
+  } else {
+    window.addEventListener("deviceorientation", handleOrientation);
+    motionActive = true;
+    document.getElementById("status").innerText="📱 Movimiento activado";
+    setMode("motion");
+    exitMotionBtn.style.display="inline-block";
+  }
+}
+function exitMotion(){
+  window.removeEventListener("deviceorientation", handleOrientation);
+  clearInterval(motionInterval);
+  motionActive = false;
+  motionInterval = null;
+  setMode("normal");
+  document.getElementById("status").innerText="📱 Movimiento desactivado";
+  exitMotionBtn.style.display="none";
+}
+function handleOrientation(event){
+  if(!motionActive) return;
+  let tiltX = event.gamma; 
+  let tiltY = event.beta;  
+  let dir = null;
+
+  if(tiltY < 5) dir = "up";
+  else if(tiltY > 75) dir = "down";
+  else if(tiltX < -30) dir = "left";
+  else if(tiltX > 30) dir = "right";
+
+  if(dir){
+    if(!motionInterval){
+      move(dir);
+      motionInterval = setInterval(()=>move(dir), 700); 
+    }
+  } else {
+    clearInterval(motionInterval);
+    motionInterval = null;
+  }
+}
+
+// --- JUEGO ---
+function startGame(){
+  gameMode = true;
+  score = 0;
+  timeLeft = 15;
+  row = 1; col = 1;
+  fishes = spawnFishes();
+  renderGrid();
+  setMode("game");
+  exitGameBtn.style.display="inline-block";
+
+  document.getElementById("status").innerText = `🐟 Puntos: 0 | ⏱ Tiempo: 15s`;
+  if(lastScore !== null){
+    document.getElementById("last").innerText = `Último puntaje: ${lastScore}`;
   }
 
-  // --- Reconocimiento de voz ---
-  let recognition, listening=false;
-  function toggleVoice(){
-    if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
-      alert("Este navegador no soporta reconocimiento de voz (Safari iOS no lo tiene)");
-      return;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timeLeft--;
+    document.getElementById("status").innerText = `🐟 Puntos: ${score} | ⏱ Tiempo: ${timeLeft}s`;
+    if(timeLeft <= 0){
+      endGame();
     }
-    if(!recognition){
-      const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-      recognition = new SR();
-      recognition.lang="es-MX";
-      recognition.onresult = (e)=>{
-        const txt = e.results[0][0].transcript.toLowerCase();
-        document.getElementById("status").innerText="Voz: "+txt;
-        if(txt.includes("arriba")) move("up");
-        if(txt.includes("abajo")) move("down");
-        if(txt.includes("izquierda")) move("left");
-        if(txt.includes("derecha")) move("right");
-      };
-      recognition.onend = ()=>{ if(listening) recognition.start(); };
-    }
-    if(!listening){
-      recognition.start(); listening=true;
-      document.getElementById("status").innerText="🎤 Voz activada (solo Chrome)";
-    } else {
-      recognition.stop(); listening=false;
-      document.getElementById("status").innerText="🎤 Voz desactivada";
-    }
+  },1000);
+}
+
+function endGame(){
+  clearInterval(timerInterval);
+  gameMode = false;
+  lastScore = score;
+  renderGrid();
+  setMode("normal");
+  exitGameBtn.style.display = "none";
+  document.getElementById("status").innerText = `🎉 ¡Tiempo terminado! Puntos: ${score}`;
+  document.getElementById("last").innerText = `Último puntaje: ${lastScore}`;
+}
+
+function exitGame(){
+  clearInterval(timerInterval);
+  gameMode = false;
+  lastScore = score;
+  renderGrid();
+  setMode("normal");
+  exitGameBtn.style.display = "none";
+  document.getElementById("status").innerText = `❌ Juego cancelado. Puntos: ${score}`;
+  document.getElementById("last").innerText = `Último puntaje: ${lastScore}`;
+}
+
+function spawnFishes(){
+  let arr = [];
+  for(let i=0;i<3;i++){
+    let r = Math.floor(Math.random()*size);
+    let c = Math.floor(Math.random()*size);
+    if(r===row && c===col){ i--; continue; }
+    arr.push({r,c});
   }
+  return arr;
+}
 
-  // --- Movimiento (giroscopio) ---
-  let motionInterval = null;
-
-  function startMotion(){
-    if (typeof DeviceOrientationEvent !== "undefined" && 
-        typeof DeviceOrientationEvent.requestPermission === "function") {
-      DeviceOrientationEvent.requestPermission()
-        .then(response => {
-          if (response === "granted") {
-            window.addEventListener("deviceorientation", handleOrientation);
-            document.getElementById("status").innerText="📱 Movimiento activado, inclina el iPhone";
-          } else {
-            document.getElementById("status").innerText="Permiso denegado para sensores.";
-          }
-        })
-        .catch(console.error);
-    } else {
-      window.addEventListener("deviceorientation", handleOrientation);
-      document.getElementById("status").innerText="📱 Movimiento activado (Android / navegador compatible)";
+function checkCollision(){
+  fishes = fishes.filter(f=>{
+    if(f.r===row && f.c===col){
+      score++;
+      return false;
     }
+    return true;
+  });
+  if(fishes.length===0){
+    fishes = spawnFishes();
   }
+  renderGrid();
+}
 
-  function handleOrientation(event){
-    let tiltX = event.gamma; // izquierda/derecha
-    let tiltY = event.beta;  // adelante/atrás
-
-    let dir = null;
-
-    // Umbrales más estrictos para que no se dispare fácil
-    if(tiltY < 5) dir = "up";
-    else if(tiltY > 75) dir = "down";
-    else if(tiltX < -30) dir = "left";
-    else if(tiltX > 30) dir = "right";
-
-    if(dir){
-      // si ya hay intervalo corriendo, no iniciar otro
-      if(!motionInterval){
-        move(dir);
-        motionInterval = setInterval(()=>move(dir), 700); 
-        // se repite cada 700 ms mientras mantienes inclinación
-      }
-    } else {
-      // si vuelve a neutro, paramos la repetición
-      clearInterval(motionInterval);
-      motionInterval = null;
-    }
-  }
+// --- Control con teclado (solo PC) ---
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="ArrowUp") move("up");
+  if(e.key==="ArrowDown") move("down");
+  if(e.key==="ArrowLeft") move("left");
+  if(e.key==="ArrowRight") move("right");
+});
 </script>
 </body>
 </html>
+
+
+
+
+
+

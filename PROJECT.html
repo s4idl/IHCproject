@@ -46,11 +46,7 @@
 
   /* --- Responsive smartphone --- */
   @media (max-width:600px){
-    .grid {
-      grid-template-columns: repeat(3,80px);
-      grid-template-rows: repeat(3,80px);
-      gap:4px;
-    }
+    .grid { grid-template-columns: repeat(3,80px); grid-template-rows: repeat(3,80px); gap:4px; }
     .cell { font-size:30px; }
     .avatar { font-size:40px; }
     .controls { max-width:100%; padding:0 10px; }
@@ -59,10 +55,7 @@
   }
 
   @media (max-width:400px){
-    .grid {
-      grid-template-columns: repeat(3,70px);
-      grid-template-rows: repeat(3,70px);
-    }
+    .grid { grid-template-columns: repeat(3,70px); grid-template-rows: repeat(3,70px); }
     .btn { font-size:16px; min-width:90px; }
   }
 </style>
@@ -245,8 +238,25 @@ function handleOrientation(event){
   }
 }
 
-// --- JUEGO ---
+// --- JUEGO con verificación de modo activo ---
 function startGame(){
+  if(listening || motionActive){
+    const activeModes = [];
+    if(listening) activeModes.push("Voz");
+    if(motionActive) activeModes.push("Movimiento");
+
+    const confirmStart = confirm(
+      `Actualmente tienes activado el modo: ${activeModes.join(", ")}.\n` +
+      "Se desactivarán al empezar el juego. ¿Deseas continuar?"
+    );
+    if(!confirmStart) return;
+
+    // Desactivar modos activos
+    if(listening) exitVoice();
+    if(motionActive) exitMotion();
+  }
+
+  // Lógica normal de iniciar el juego
   gameMode = true;
   score = 0;
   timeLeft = 15;
@@ -265,9 +275,7 @@ function startGame(){
   timerInterval = setInterval(()=>{
     timeLeft--;
     document.getElementById("status").innerText = `🐟 Puntos: ${score} | ⏱ Tiempo: ${timeLeft}s`;
-    if(timeLeft <= 0){
-      endGame();
-    }
+    if(timeLeft <= 0) endGame();
   },1000);
 }
 
@@ -328,6 +336,8 @@ document.addEventListener("keydown",(e)=>{
 </script>
 </body>
 </html>
+
+
 
 
 
